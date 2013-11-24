@@ -2,86 +2,89 @@ package org.jboss.bigcommotion.services;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.bigcommotion.model.WebMetric;
+import org.jboss.bigcommotion.util.Resources;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Scanner;
-import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 /**
- * Imports a CSV formatted Google Analytics pageview report based on standard defaults.
+ * Imports a CSV formatted Google Analytics page-view report based on standard defaults.
  */
 @Stateless
 public class GoogleAnalyticsImportService {
-
 	
-   @PersistenceContext(unitName = "forge-default")
+   private static final String DATE_FORMAT = "YYYYMMdd";
+   private static final String REGEX_COMMAS_AND_QUOTES = ",(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
+   private static final String PERSISTENCE_CONTEXT_NAME = "metrics-big-commotion";
+   private static final int END_OF_URI_METRICS_LINENUM = 2506;
+
+   
+   @PersistenceContext(unitName = PERSISTENCE_CONTEXT_NAME)
    private EntityManager em;
-
-
-	
-    private static final int END_OF_URI_METRICS_LINENUM = 2506;
     
-    @Inject
-    private transient Logger logger;
+   @Inject
+   private transient Logger logger;
 
-    
-	public void go(final String siteName, final String metricDir){
+   /**
+    * Designed to be the main entry point for this Import Service
+    * @param siteName
+    * @param path
+    */
+   public void go(final String siteName, final String path){
 
-        File folder = new File(metricDir);
+	   if (siteName == null || siteName.isEmpty()){
+		   logger.log(Level.WARNING, "site name is required to process metrics");
+		   throw new IllegalArgumentException("siteName must be specified.");
+	   }
+	   
+	   if (path == null || StringUtils.isEmpty(path)){
+		   logger.log(Level.WARNING, "path is required to process metrics");
+		   throw new IllegalArgumentException("path must be specified.");
+	   }
+	   
+       File filePath = new File(path);
+	   Date startDate = getStartDate(filePath.getName());
+       
+       if (!filePath.isDirectory()){    	   // Process a single file
+    	   try {
+    		   parseFile(filePath, startDate);
+        	} catch (Exception e){
+        		logger.log(Level.SEVERE, "Error parsing file " + filePath.getName(), e);
+        	}
+        } else {        	// Process a directory
+            File[] files = filePath.listFiles();
+            for (int i = 0; i < files.length; i++){
 
-        if (!folder.isDirectory()){
-            System.out.println("Cannot continue.  Must be a directory path");
-            return;
+            	//omit Mac specific .DS_Store file
+        		if (StringUtils.endsWith(files[i].getName(), ".DS_Store")){
+        			continue;
+        		}
+        		
+        		try {
+        			parseFile(files[i], startDate);
+        		} catch (Exception e){
+        			logger.log(Level.SEVERE, "Error parsing file: " + files[i].getName(), e);
+        		}
+            }        	
         }
-
-        File[] files = folder.listFiles();
-        for (int i = 0; i < files.length; i++){
-            importPageViewMetrics(siteName,files[i]);
-        }
-    }
+    }	
 
 
-    public void importPageViewMetrics(final String siteName, final String filePath){
-        File file = new File(filePath);
-        importPageViewMetrics(siteName, filePath);
-	}
-	
-	public void importPageViewMetrics(final String siteName, File file){
-
-		//omit Mac specific .DS_Store file
-		if (StringUtils.endsWith(file.getName(), ".DS_Store")){
-			return;
-		}
-		Date startDate = getStartDate(file.getName());		
-		try {
-			parseFile(file, startDate);
-		} catch (Exception e){
-			logger.log(Level.SEVERE, "Error parsing file: ", e);
-		}
-		
-		//Open the file, and read each row.
-		
-		return;
-	}
 
     /**
      *  Scrapes filename for the month of the metrics.  By default, the Google Analytics naming convention is
@@ -92,7 +95,7 @@ public class GoogleAnalyticsImportService {
 
         String dateRange = StringUtils.substringAfterLast(fileName, " ");
         String startDateStr = StringUtils.substringBefore(dateRange, "-");
-        SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMdd");
+        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
         Date startDate = null;
 
         try {
@@ -108,10 +111,16 @@ public class GoogleAnalyticsImportService {
 
     }
 
-    private Date getEndDate(final String fileName){
+    /**
+     * 
+     * @param fileName
+     * @return
+     */
+    @SuppressWarnings("unused")
+	private Date getEndDate(final String fileName){
     	String dateRange = StringUtils.substringAfterLast(fileName, " ");
     	String endDateStr = StringUtils.substringBeforeLast((StringUtils.substringAfter(dateRange, "-")), ".");
-    	SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMdd");
+    	SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
     	Date endDate = null;
     	try {
     		endDate = sdf.parse(endDateStr);
@@ -123,6 +132,13 @@ public class GoogleAnalyticsImportService {
     }
 
 
+    /**
+     * 
+     * @param file
+     * @param startDate
+     * @return
+     * @throws Exception
+     */
     private List<WebMetric> parseFile(File file, Date startDate) throws Exception{
         
     	Map<String, WebMetric> metrics = new HashMap<String, WebMetric>();
@@ -138,9 +154,13 @@ public class GoogleAnalyticsImportService {
         	lineNum++;
         }
 
-        scanner.useDelimiter(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+        scanner.useDelimiter(REGEX_COMMAS_AND_QUOTES);
         
-        while(scanner.hasNextLine() && lineNum < END_OF_URI_METRICS_LINENUM ){
+        // Scan each line.  
+        // TODO: This logic is incorrect.  Many of the secondary sites
+        // do not have 2500 entries.  Only jboss.org does.
+        while(scanner.hasNextLine() && lineNum < END_OF_URI_METRICS_LINENUM )
+        {
             while(scanner.hasNext()){
             	WebMetric metric = new WebMetric();
                 metric.setDate(startDate);
@@ -148,12 +168,12 @@ public class GoogleAnalyticsImportService {
                 metric.setPage(url);
                 
             	try {
-            		metric.setPageViews(stripQuotes(scanner.next()));
-                    metric.setUniquePageViews(stripQuotes(scanner.next()));
+            		metric.setPageViews(Resources.stripQuotes(scanner.next()));
+                    metric.setUniquePageViews(Resources.stripQuotes(scanner.next()));
                     scanner.next(); // omit average time on page for now.
-                    metric.setEntrances(stripQuotes(scanner.next()));
-                    metric.setBounceRate(parsePercentage(scanner.next())); 
-                    metric.setPercentExit(parsePercentage(scanner.next()));
+                    metric.setEntrances(Resources.stripQuotes(scanner.next()));
+                    metric.setBounceRate(Resources.parsePercentage(scanner.next())); 
+                    metric.setPercentExit(Resources.parsePercentage(scanner.next()));
                     lineNum++;
                     scanner.nextLine(); //omit page value for now
                     logger.log(Level.FINER, metric.toString());
@@ -168,15 +188,16 @@ public class GoogleAnalyticsImportService {
             		logger.log(Level.WARNING, "Issue with " + metric.getPage() + " in " + metric.getDate() + ": ");
             		nfe.printStackTrace();
             	}
-            	
-            	
+            
             }
             
+            // persist all records
             for (String key : metrics.keySet()){
             	WebMetric metric = metrics.get(key);
             	metric = em.merge(metric);
             }
-        }
+        } // End of File Scan
+        
             
         //TODO:  Add summarized page-views that start on line 2511
         scanner.close();
@@ -185,41 +206,36 @@ public class GoogleAnalyticsImportService {
     }
     
 
-    private void addOrUpdateMetric(Map<String, WebMetric> metrics, WebMetric metric)
+    /**
+     * There are many duplicates from jboss.org.  This method checks existing entries,
+     * and confirms there is only one.  Should a duplicate entry exist, the method
+     * sums the visits, entrances, unique pageviews and exits.  
+     * TODO:  Still need to do the moving averages correctly.
+     * TODO:  Possibly make this JDG/ISPN based?
+     * @param metrics
+     * @param metric
+     */
+    private static void addOrUpdateMetric(Map<String, WebMetric> metrics, WebMetric metric)
     {
-    	// Remove cruft from name
     	String page = metric.getPage();
     	
     	// Only URL that should have a trailing '/' is the root.
-    	if (StringUtils.contains(page, "/") && page.length() > 0){
+    	if (StringUtils.contains(page, "/") && page.length() > 1){
     		page = (StringUtils.substringBeforeLast(page, "/"));
     	}
     	
     	page = StringUtils.substringBeforeLast(page, ".html");
     	
     	if (metrics.containsKey(page)){
+
     		// Add the metrics together
     		WebMetric existingMetric = metrics.get(page);
     		existingMetric.addMetrics(metric);
     	} else {
     		metric.setPage(page);
     		metrics.put(page, metric);
-    	}
-    	
-    }
-    
-    private static long stripQuotes(String value){
-    	String temp = StringUtils.remove(value, "\"");
-    	temp = StringUtils.remove(temp,",");
-    	return new Long(temp).longValue();
-    }
-    
-    private static Float parsePercentage(String value){
-    	String temp = StringUtils.remove(value, "%");
-    	return new Float(temp);
-    }
-    
-    
+    	}    	
+    }    
     
 }
 
