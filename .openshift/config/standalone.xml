@@ -407,6 +407,14 @@
 							<entry name="java:/JmsXA" />
 						</entries>
 					</pooled-connection-factory>
+
+                			<jms-destinations>
+                    				<jms-queue name="queue/PageviewQueue">
+                        			  <entry name="java:/queue/PageviewQueue"/> 
+						  <durable>false</durable> 
+						</jms-queue>
+                			</jms-destinations>
+
 				</jms-connection-factories>
 			</hornetq-server>
 		</subsystem>
