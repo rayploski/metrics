@@ -110,6 +110,7 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
         			metric.setDate(startDate);
         			String url = scanner.next();
         			metric.setPage(url);
+        			metric.setSite(siteName);
 
         			try {
         				metric.setPageViews(Resources.stripQuotes(scanner.next()));
