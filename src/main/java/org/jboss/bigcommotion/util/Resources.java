@@ -10,6 +10,10 @@ import org.apache.commons.lang.StringUtils;
 
 public class Resources {
 
+	public static final String PERSISTENCE_CONTEXT_NAME = "metrics-big-commotion";
+	public static final String PAGEVIEW_QUEUE = "queue/PageviewQueue";
+	
+	
 	@Produces
 	public Logger produceLogger(InjectionPoint ip){
 		return Logger.getLogger(ip.getMember().getDeclaringClass().getName());

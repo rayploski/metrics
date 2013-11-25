@@ -50,8 +50,31 @@ public class WebMetric implements Serializable
 
    @Column
    private Float percentExit;
+   
+   @Column
+   private String fileName;
+   
+   @Column
+   private String project;
+   
 
-   public Long getId()
+   public String getProject() {
+	return project;
+}
+
+public void setProject(String project) {
+	this.project = project;
+}
+
+public String getFileName() {
+	return fileName;
+}
+
+public void setFileName(String fileName) {
+	this.fileName = fileName;
+}
+
+public Long getId()
    {
       return this.id;
    }
