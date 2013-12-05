@@ -1,14 +1,14 @@
 package org.jboss.bigcommotion.rest;
 
-import org.jboss.bigcommotion.services.GoogleAnalyticsImportService;
-
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
+
+import org.jboss.bigcommotion.services.GoogleAnalyticsImportService;
+
 
 
 @Stateless
@@ -22,7 +22,7 @@ public class MetricImportEndpoint {
     public Response importFiles (@QueryParam("siteName")String siteName, @QueryParam("importDir")String importDir){
 
         importer.go(siteName, importDir);
-        return null;
+        return Response.ok().build();
     }
 
 }

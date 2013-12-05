@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
-import javax.mail.MethodNotSupportedException;
 
 import org.apache.commons.lang.StringUtils;
 import org.drools.KnowledgeBase;

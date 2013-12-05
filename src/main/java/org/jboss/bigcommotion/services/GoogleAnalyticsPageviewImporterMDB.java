@@ -3,8 +3,6 @@ package org.jboss.bigcommotion.services;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,7 +17,6 @@ import javax.inject.Inject;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
-import javax.jms.TextMessage;
 import javax.jms.MessageListener;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -177,6 +174,7 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
     	String page = metric.getPage();
     	
     	//TODO: These rules would be way better in a drools spreadsheet.
+    	page = page.length() > 512 ? page.substring(1, 511):page;
     	page = page.contains("?") ? StringUtils.substringBeforeLast(page, "?"):page;
     	page = StringUtils.endsWith(page, "download.html")?StringUtils.substringBeforeLast(page, ".html"):page;
     	page = StringUtils.endsWith(page, "index.html")?StringUtils.substringBeforeLast(page, "index.html"):page;

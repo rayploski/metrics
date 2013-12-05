@@ -16,6 +16,8 @@ import javax.persistence.TemporalType;
 public class WebMetric implements Serializable
 {
 
+   private static final long serialVersionUID = 4629823886662504496L;
+
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
    @Column(name = "id", updatable = false, nullable = false)
@@ -30,7 +32,7 @@ public class WebMetric implements Serializable
    @Column
    private String site;
 
-   @Column
+   @Column(length = 512, nullable = false)
    private String page;
 
    @Column
@@ -217,7 +219,7 @@ public Long getId()
    }
    
    
-   public void addMetrics(WebMetric metric){
+   public void addMetrics(final WebMetric metric){
 	   
 	   double pctBounce = ((this.getPageViews() * this.getBounceRate().doubleValue() * .01) 
 			   + (metric.getPageViews() * metric.getBounceRate().doubleValue() * 0.01)) 
