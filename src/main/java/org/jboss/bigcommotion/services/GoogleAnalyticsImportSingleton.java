@@ -1,30 +1,18 @@
 package org.jboss.bigcommotion.services;
 
-import org.apache.commons.lang.StringUtils;
-import org.jboss.bigcommotion.model.WebMetric;
-import org.jboss.bigcommotion.util.Resources;
-
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
+import javax.ejb.Schedule;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import javax.inject.Inject;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -33,43 +21,142 @@ import javax.jms.MessageProducer;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.Session;
-import javax.jms.TextMessage;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
+
+import org.apache.commons.lang.StringUtils;
+import org.jboss.bigcommotion.model.WebMetric;
+import org.jboss.bigcommotion.util.Resources;
 
 /**
  * Imports a CSV formatted Google Analytics page-view report based on standard defaults.
  * TODO:  Refactor the code to make visibility of the site name and metric list.
  */
-@Stateless
-public class GoogleAnalyticsImportService {
+@Startup
+@Singleton
+public class GoogleAnalyticsImportSingleton {
 	
 	private static final String DATE_FORMAT = "yyyyMMdd";
-
+	private static final String DEFAULT_DATA_PATH = "/opt/data";
+	private static File dataPath;
 
 	@PersistenceContext(unitName = Resources.PERSISTENCE_CONTEXT_NAME)
 	private EntityManager em;
-
+	
 	@Inject
-	private transient Logger logger;
+	private transient Logger logger;	
 
 	@Resource(mappedName = "java:/ConnectionFactory")
 	private ConnectionFactory connectionFactory;
 
 	@Resource(mappedName = "java:/" + Resources.PAGEVIEW_QUEUE)
 	private Queue queue;
+	
+	private HashSet<WebMetric> messageSet = new HashSet<WebMetric>();
 
-   
-   
-   /**
-    * TODO: Break this method and the parse file out from one another.  Potentially send a JMS message
-    * and start asynch processing on all files simultaneously
-    * Designed to be the main entry point for this Import Service
-    * @param siteName
-    * @param path
-    */
+	// -------------------------------------------------------------------
+	
+	@PostConstruct
+	private void setup(){
+		//TODO:  Make the data path configurable.
+		dataPath = new File(DEFAULT_DATA_PATH);		
+	}		
+	
+	
+	/**
+	 * Poll is the main entry-point into the class.  By default, it searches /opt/data/ for files
+	 * to import every three minutes.  This really should be changed for the first few days of each 
+	 * month.
+	 */
+	@Schedule(minute="*/3", hour="*")
+	public void poll(){
+		// Look through file directories
+		File[] dirs = dataPath.listFiles();
+		for (File dir : dirs){
+			//omit Mac specific .DS_Store file, swp and the processed directory
+			if (isCrapFile(dir.getName())){
+				continue;
+			}
+			//Assign project name, fileName and siteName
+			walkthruDir(dir);				
+		}
+	   //Needs to be evaluated if this is appropriate.
+	   sendMessages(messageSet);
+	}
 
-   public void go(final String siteName, final String path){
+	
+	/**
+	 * Sets the fileName, siteName, date and project name where applicable
+	 * @param dir
+	 */
+	private void walkthruDir(File dir){
+		assert dir != null && dir.isDirectory();
+		File[] files = dir.listFiles();
+		for (File file: files){
+			if (!isCrapFile(file.getName())){
+				logger.fine("Found " + file.getPath());
+				if (! isFileAlreadyProcessed(dir)){
+					try {
+						Date startDate = getStartDate(file.getName());;					
+						WebMetric metric = new WebMetric();
+						metric.setFileName(file.getPath());
+						metric.setSite(dir.getName());  // this should eventually be changed
+						logger.finest("setting " + dir.getName() + "as site");
+						if (dir.getName() != "jboss.org"){
+							metric.setProject(dir.getName());
+							logger.finest("assigning " + dir.getName() + "as project");
+						}
+						metric.setDate(startDate);
+						messageSet.add(metric);
+					} catch (Exception e){
+						   logger.log(Level.ALL, "Error getting a startDate", e);
+					}					
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * Removes any extraneous files from evaluation.
+	 * @param fileName
+	 * @return
+	 */
+	private boolean isCrapFile(String fileName){
+		if (StringUtils.endsWith(fileName, ".DS_Store")
+				|| StringUtils.endsWith(fileName, ".swp")
+				|| StringUtils.endsWith(fileName, "processed")
+				|| StringUtils.endsWith(fileName, "archive")
+				|| StringUtils.endsWith(fileName, "archived")
+				)
+			return true;
+		else
+			return false;
+	}
+	
+	
+	/**
+	 * Checks to see if the File has already been proccessed by the system.
+	 * @param file
+	 * @return
+	 */
+	private boolean isFileAlreadyProcessed(File file){
+		//look up the file path to see if we have already processed it in the past.
+		TypedQuery<WebMetric> findByFilePathQuery = em.createQuery("SELECT m FROM WebMetric m where m.fileName = :path", WebMetric.class );
+		findByFilePathQuery.setParameter("path", file.getPath());
+		WebMetric entity = findByFilePathQuery.getSingleResult();
+		if (entity == null ){
+			return false;
+		}
+		logger.finest("Already processed " + file.getPath() + " ignoring.");
+		return true;		
+	}
+   
+	
+	// -------------------------------------------------------------------
+	@Deprecated
+    public void go(final String siteName, final String path){
 
 	   if (siteName == null || siteName.isEmpty()){
 		   logger.log(Level.WARNING, "site name is required to process metrics");
@@ -126,9 +213,7 @@ public class GoogleAnalyticsImportService {
 
    	//TODO raise a CDI event instead of this mess!
    	private void sendMessages(HashSet<WebMetric> messages){
-
    		assert messages!=null:"messages must be specified";
-   	   
    		Connection connection = null;
    		Session session = null;
    		MessageProducer msgProducer = null;

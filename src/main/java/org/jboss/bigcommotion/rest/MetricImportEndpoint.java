@@ -7,7 +7,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 
-import org.jboss.bigcommotion.services.GoogleAnalyticsImportService;
+import org.jboss.bigcommotion.services.GoogleAnalyticsImportSingleton;
 
 
 
@@ -16,7 +16,7 @@ import org.jboss.bigcommotion.services.GoogleAnalyticsImportService;
 public class MetricImportEndpoint {
 
 
-    @Inject GoogleAnalyticsImportService importer;
+    @Inject GoogleAnalyticsImportSingleton importer;
     
     @GET
     public Response importFiles (@QueryParam("siteName")String siteName, @QueryParam("importDir")String importDir){
