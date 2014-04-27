@@ -32,19 +32,17 @@ import org.jboss.bigcommotion.util.Resources;
 		})
 public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
 	
-   private static final String REGEX_COMMAS_AND_QUOTES = ",(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
-   private static final int END_OF_URI_METRICS_LINENUM = 2506;
-
+	private static final String REGEX_COMMAS_AND_QUOTES = ",(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
+	private static final int END_OF_URI_METRICS_LINENUM = 2506;
 
 	@PersistenceContext(unitName = Resources.PERSISTENCE_CONTEXT_NAME)
 	private EntityManager em;
-	    
+
 	@Inject
 	private transient Logger logger;
 
 	@Override
 	public void onMessage(Message rcvMessage) {
-	
 		ObjectMessage msg = null;
 		
 		try {
@@ -56,14 +54,12 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
 					logger.info("Received message from queue " +  m.toString());
 					parseFile(m.getSite(), new File(m.getFileName()), m.getDate());
 				}
-			}
-			
+			}			
 		} catch (JMSException jmsE){
 			logger.log(Level.SEVERE, "Issue processing message. ", jmsE);
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Issue processing file: " , e);
 		}
-		
 	}
 	
     /**
@@ -79,14 +75,12 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
     	assert file != null : "file must be specified";
     	assert startDate !=null : "startDate must be specified";
         
-    	Map<String, WebMetric> metrics = new HashMap<String, WebMetric>();
-
+    	Map<String, WebMetric> metrics = new HashMap<String, WebMetric>();  //stores paths for consolidating things like /downloads and /downloads/index.html prior to pertisting to the DB.
         FileReader fileReader = new FileReader(file);
         BufferedReader bufferedFileReader = new BufferedReader(fileReader);
     	Scanner scanner = new Scanner(bufferedFileReader);
 		long lineNum = 0;
-		
-        // Skip the metadata for now.
+        // Skip the metadata for now.  TODO:  Add metadata to the model.
         while (lineNum < 7){
             scanner.nextLine();
         	lineNum++;
@@ -95,10 +89,8 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
         scanner.useDelimiter(REGEX_COMMAS_AND_QUOTES);
         
         // Scan each line.  
-        // TODO: This logic is incorrect.  Many of the secondary sites
-        // do not have 2500 entries.  Only jboss.org does.
-        
-        logger.info("Parsing metrics from " + startDate + "...");
+        // TODO: This logic is incorrect.  Many of the secondary sites do not have 2500 entries.  Only jboss.org does.
+        logger.info("Parsing metrics from " + startDate + "for" + siteName + "...");
         filescan:
         	while(scanner.hasNextLine() && lineNum < END_OF_URI_METRICS_LINENUM )
         	{
@@ -108,6 +100,8 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
         			String url = scanner.next();
         			metric.setPage(url);
         			metric.setSite(siteName);
+        			metric.setFileName(file.getPath());
+        			metric.setProject(file.getParentFile().getName());
 
         			try {
         				metric.setPageViews(Resources.stripQuotes(scanner.next()));
@@ -134,17 +128,15 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
         		}  // End of Line Scan
         	} // End of File Scan
  
-        //TODO:  Add summarized page-views that start on line 2511
+        //TODO:  Add summarized page-views that start on line 2511 of a JBoss.org report.
+        //TODO:  Address and recognize pattern for the end of the individual files.  We *do* want to record the rest of the file but this will do for now.
         scanner.close();
-        
         logger.info("Saving metrics from " + startDate + " recording " + metrics.size() + " metrics");
         saveMetrics(metrics);
-    	    
         return metrics.values();
     }
     
     private void saveMetrics(Map<String,WebMetric> metrics){
-
     	assert metrics != null : "metrics must be specified";
     	
     	for (String key : metrics.keySet()){
@@ -202,9 +194,4 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
     		metrics.put(page, metric);
     	}    	
     }    
-	
-	
-
-
-	
 }

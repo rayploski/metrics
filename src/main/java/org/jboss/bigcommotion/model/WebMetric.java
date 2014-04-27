@@ -1,14 +1,18 @@
 package org.jboss.bigcommotion.model;
 
 import javax.persistence.Entity;
+
 import java.io.Serializable;
+
 import javax.persistence.Id;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Column;
 import javax.persistence.Version;
+
 import java.lang.Override;
 import java.util.Date;
+
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
@@ -16,244 +20,253 @@ import javax.persistence.TemporalType;
 public class WebMetric implements Serializable
 {
 
-   private static final long serialVersionUID = 4629823886662504496L;
+	private static final long serialVersionUID = 4629823886662504496L;
 
-   @Id
-   @GeneratedValue(strategy = GenerationType.AUTO)
-   @Column(name = "id", updatable = false, nullable = false)
-   private Long id = null;
-   @Version
-   @Column(name = "version")
-   private int version = 0;
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name = "id", updatable = false, nullable = false)
+	private Long id = null;
+	@Version
+	@Column(name = "version")
+	private int version = 0;
 
-   @Temporal(TemporalType.DATE)
-   private Date date;
+	@Temporal(TemporalType.DATE)
+	private Date date;
 
-   @Column
-   private String site;
+	@Column
+	private String site;
 
-   @Column(length = 512, nullable = false)
-   private String page;
+	@Column(length = 512, nullable = false)
+	private String page;
 
-   @Column
-   private long pageViews;
+	@Column
+	private long pageViews;
 
-   @Column
-   private long uniquePageViews;
+	@Column
+	private long uniquePageViews;
 
-   @Column
-   private int averageTimeOnPage;
+	@Column
+	private int averageTimeOnPage;
 
-   @Column
-   private long entrances;
+	@Column
+	private long entrances;
 
-   @Column
-   private Float bounceRate;
+	@Column
+	private Float bounceRate;
 
-   @Column
-   private Float percentExit;
-   
-   @Column
-   private String fileName;
-   
-   @Column
-   private String project;
-   
+	@Column
+	private Float percentExit;
 
-   public String getProject() {
-	return project;
-}
+	@Column
+	private String fileName;
 
-public void setProject(String project) {
-	this.project = project;
-}
+	@Column
+	private String project;
 
-public String getFileName() {
-	return fileName;
-}
+	public WebMetric(){
 
-public void setFileName(String fileName) {
-	this.fileName = fileName;
-}
+	}
 
-public Long getId()
-   {
-      return this.id;
-   }
+	public WebMetric(String absolutePath, String siteName, Date startDate) {
+		this.setFileName(absolutePath);
+		this.setSite(siteName);
+		this.setDate(startDate);
+	}
 
-   public void setId(final Long id)
-   {
-      this.id = id;
-   }
+	public String getProject() {
+		return project;
+	}
 
-   public int getVersion()
-   {
-      return this.version;
-   }
+	public void setProject(String project) {
+		this.project = project;
+	}
 
-   public void setVersion(final int version)
-   {
-      this.version = version;
-   }
+	public String getFileName() {
+		return fileName;
+	}
 
-   @Override
-   public boolean equals(Object that)
-   {
-      if (this == that)
-      {
-         return true;
-      }
-      if (that == null)
-      {
-         return false;
-      }
-      if (getClass() != that.getClass())
-      {
-         return false;
-      }
-      if (id != null)
-      {
-         return id.equals(((WebMetric) that).id);
-      }
-      return super.equals(that);
-   }
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
 
-   @Override
-   public int hashCode()
-   {
-      if (id != null)
-      {
-         return id.hashCode();
-      }
-      return super.hashCode();
-   }
+	public Long getId()
+	{
+		return this.id;
+	}
 
-   public Date getDate()
-   {
-      return this.date;
-   }
+	public void setId(final Long id)
+	{
+		this.id = id;
+	}
 
-   public void setDate(final Date date)
-   {
-      this.date = date;
-   }
+	public int getVersion()
+	{
+		return this.version;
+	}
 
-   public String getSite()
-   {
-      return this.site;
-   }
+	public void setVersion(final int version)
+	{
+		this.version = version;
+	}
 
-   public void setSite(final String site)
-   {
-      this.site = site;
-   }
+	@Override
+	public boolean equals(Object that)
+	{
+		if (this == that)
+		{
+			return true;
+		}
+		if (that == null)
+		{
+			return false;
+		}
+		if (getClass() != that.getClass())
+		{
+			return false;
+		}
+		if (id != null)
+		{
+			return id.equals(((WebMetric) that).id);
+		}
+		return super.equals(that);
+	}
 
-   public String getPage()
-   {
-      return this.page;
-   }
+	@Override
+	public int hashCode()
+	{
+		if (id != null)
+		{
+			return id.hashCode();
+		}
+		return super.hashCode();
+	}
 
-   public void setPage(final String page)
-   {
-      this.page = page;
-   }
+	public Date getDate()
+	{
+		return this.date;
+	}
 
-   public long getPageViews()
-   {
-      return this.pageViews;
-   }
+	public void setDate(final Date date)
+	{
+		this.date = date;
+	}
 
-   public void setPageViews(final long pageViews)
-   {
-      this.pageViews = pageViews;
-   }
+	public String getSite()
+	{
+		return this.site;
+	}
 
-   public long getUniquePageViews()
-   {
-      return this.uniquePageViews;
-   }
+	public void setSite(final String site)
+	{
+		this.site = site;
+	}
 
-   public void setUniquePageViews(final long uniquePageViews)
-   {
-      this.uniquePageViews = uniquePageViews;
-   }
+	public String getPage()
+	{
+		return this.page;
+	}
 
-   public int getAverageTimeOnPage()
-   {
-      return this.averageTimeOnPage;
-   }
+	public void setPage(final String page)
+	{
+		this.page = page;
+	}
 
-   public void setAverageTimeOnPage(final int averageTimeOnPage)
-   {
-      this.averageTimeOnPage = averageTimeOnPage;
-   }
+	public long getPageViews()
+	{
+		return this.pageViews;
+	}
 
-   public long getEntrances()
-   {
-      return this.entrances;
-   }
+	public void setPageViews(final long pageViews)
+	{
+		this.pageViews = pageViews;
+	}
 
-   public void setEntrances(final long entrances)
-   {
-      this.entrances = entrances;
-   }
+	public long getUniquePageViews()
+	{
+		return this.uniquePageViews;
+	}
 
-   public Float getBounceRate()
-   {
-      return this.bounceRate;
-   }
+	public void setUniquePageViews(final long uniquePageViews)
+	{
+		this.uniquePageViews = uniquePageViews;
+	}
 
-   public void setBounceRate(final Float bounceRate)
-   {
-      this.bounceRate = bounceRate;
-   }
+	public int getAverageTimeOnPage()
+	{
+		return this.averageTimeOnPage;
+	}
 
-   public Float getPercentExit()
-   {
-      return this.percentExit;
-   }
+	public void setAverageTimeOnPage(final int averageTimeOnPage)
+	{
+		this.averageTimeOnPage = averageTimeOnPage;
+	}
 
-   public void setPercentExit(final Float percentExit)
-   {
-      this.percentExit = percentExit;
-   }
-   
-   
-   public void addMetrics(final WebMetric metric){
-	   
-	   double pctBounce = ((this.getPageViews() * this.getBounceRate().doubleValue() * .01) 
-			   + (metric.getPageViews() * metric.getBounceRate().doubleValue() * 0.01)) 
-			   / ((this.getPageViews() + metric.getPageViews()) * 100); 
+	public long getEntrances()
+	{
+		return this.entrances;
+	}
 
-	   double pctExit = ((this.getPageViews() * this.getPercentExit().doubleValue() * .01) 
-			   + (metric.getPageViews() * metric.getPercentExit().doubleValue() * 0.01)) 
-			   / ((this.getPageViews() + metric.getPageViews()) * 100); 
-	  
-	   this.setBounceRate(new Float(pctBounce));
-	   this.setPercentExit(new Float(pctExit));
-	   this.setEntrances(this.getEntrances() + metric.getEntrances());
-	   this.setPageViews(this.getPageViews() + metric.getPageViews());
-	   this.setUniquePageViews(this.getUniquePageViews() + metric.getUniquePageViews());
-	   
-	   //	   this.setAverageTimeOnPage(averageTimeOnPage);
-   }
+	public void setEntrances(final long entrances)
+	{
+		this.entrances = entrances;
+	}
 
-   @Override
-   public String toString()
-   {
-      String result = getClass().getSimpleName() + " ";
-      if (site != null && !site.trim().isEmpty())
-         result += "site: " + site;
-      if (page != null && !page.trim().isEmpty())
-         result += ", page: " + page;
-      result += ", pageViews: " + pageViews;
-      result += ", uniquePageViews: " + uniquePageViews;
-      result += ", averageTimeOnPage: " + averageTimeOnPage;
-      result += ", entrances: " + entrances;
-      if (bounceRate != null)
-         result += ", bounceRate: " + bounceRate;
-      if (percentExit != null)
-         result += ", percentExit: " + percentExit;
-      return result;
-   }
+	public Float getBounceRate()
+	{
+		return this.bounceRate;
+	}
+
+	public void setBounceRate(final Float bounceRate)
+	{
+		this.bounceRate = bounceRate;
+	}
+
+	public Float getPercentExit()
+	{
+		return this.percentExit;
+	}
+
+	public void setPercentExit(final Float percentExit)
+	{
+		this.percentExit = percentExit;
+	}
+
+
+	public void addMetrics(final WebMetric metric){
+
+		double pctBounce = ((this.getPageViews() * this.getBounceRate().doubleValue() * .01) 
+				+ (metric.getPageViews() * metric.getBounceRate().doubleValue() * 0.01)) 
+				/ ((this.getPageViews() + metric.getPageViews()) * 100); 
+
+		double pctExit = ((this.getPageViews() * this.getPercentExit().doubleValue() * .01) 
+				+ (metric.getPageViews() * metric.getPercentExit().doubleValue() * 0.01)) 
+				/ ((this.getPageViews() + metric.getPageViews()) * 100); 
+
+		this.setBounceRate(new Float(pctBounce));
+		this.setPercentExit(new Float(pctExit));
+		this.setEntrances(this.getEntrances() + metric.getEntrances());
+		this.setPageViews(this.getPageViews() + metric.getPageViews());
+		this.setUniquePageViews(this.getUniquePageViews() + metric.getUniquePageViews());
+
+		//	   this.setAverageTimeOnPage(averageTimeOnPage);
+	}
+
+	@Override
+	public String toString()
+	{
+		String result = getClass().getSimpleName() + " ";
+		if (site != null && !site.trim().isEmpty())
+			result += "site: " + site;
+		if (page != null && !page.trim().isEmpty())
+			result += ", page: " + page;
+		result += ", pageViews: " + pageViews;
+		result += ", uniquePageViews: " + uniquePageViews;
+		result += ", averageTimeOnPage: " + averageTimeOnPage;
+		result += ", entrances: " + entrances;
+		if (bounceRate != null)
+			result += ", bounceRate: " + bounceRate;
+		if (percentExit != null)
+			result += ", percentExit: " + percentExit;
+		return result;
+	}
 }
