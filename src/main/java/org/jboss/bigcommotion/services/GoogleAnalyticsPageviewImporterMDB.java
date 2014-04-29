@@ -112,7 +112,7 @@ public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
         				metric.setPercentExit(Resources.parsePercentage(scanner.next()));
         				lineNum++;
         				scanner.nextLine(); //omit page value for now
-        				logger.fine("WebMetric = " + metric.toString());
+        				logger.log(Level.FINEST,"WebMetric = " + metric.toString());
         				addOrUpdateMetric(metrics, metric);
         			} 
         			catch (java.util.NoSuchElementException nse){

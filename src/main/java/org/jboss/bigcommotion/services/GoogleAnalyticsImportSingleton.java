@@ -73,7 +73,7 @@ public class GoogleAnalyticsImportSingleton {
 	 * to import every three minutes.  This really should be changed for the first few days of each 
 	 * month.
 	 */
-	@Schedule(minute="*/5", hour="*")
+	@Schedule(minute="*/10", hour="*")
 	public void poll(){
 		logger.log(Level.FINE, "staring poll cycle.");
 		// Look through file directories
