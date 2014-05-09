@@ -1,0 +1,20 @@
+package org.jboss.bigcommotion;
+import org.jboss.bigcommotion.model.WebMetric;
+import org.apache.commons.lang.StringUtils;
+
+
+rule "Remove .html"
+salience 1000
+	when
+		$m: WebMetric( $p: page matches ".*.html(\"s\"){0,}$" )
+	then
+		$m.setPage(StringUtils.substringBeforeLast($p, ".html"));
+end
+
+rule "Remove querystring"
+salience 900
+	when
+		$m: WebMetric ($p: page matches ".*?.*")		
+	then
+		$m.setPage(StringUtils.substringBeforeLast($p, "?"));
+end

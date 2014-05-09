@@ -5,7 +5,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,12 +22,10 @@ import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.lf5.LogLevel;
 import org.jboss.bigcommotion.model.WebMetric;
 import org.jboss.bigcommotion.util.Resources;
 
@@ -58,6 +55,9 @@ public class GoogleAnalyticsImportSingleton {
 
 	private HashSet<WebMetric> messageSet = new HashSet<WebMetric>();
 
+	@Inject
+	AnalyticsPageViewParser parser;
+	
 	// -------------------------------------------------------------------
 
 	@PostConstruct
@@ -65,6 +65,7 @@ public class GoogleAnalyticsImportSingleton {
 		//TODO:  Make the data path configurable.
 		dataPath = new File(DEFAULT_DATA_PATH);	
 		logger.fine("Google Analytic Scanner now to scan " + dataPath + " for metrics.");
+		poll();
 	}		
 
 
@@ -73,7 +74,7 @@ public class GoogleAnalyticsImportSingleton {
 	 * to import every three minutes.  This really should be changed for the first few days of each 
 	 * month.
 	 */
-	@Schedule(minute="*/10", hour="*")
+	@Schedule(minute="*/30", hour="*")
 	public void poll(){
 		logger.log(Level.FINE, "staring poll cycle.");
 		// Look through file directories
@@ -83,6 +84,7 @@ public class GoogleAnalyticsImportSingleton {
 			if (isCrapFile(dir.getName())){
 				continue;
 			}
+			
 			//Assign project name, fileName and siteName
 			walkthruDir(dir);				
 		}
@@ -90,7 +92,7 @@ public class GoogleAnalyticsImportSingleton {
 		logger.log(Level.FINE, "finished polling.");
 	}
 
-
+	
 	/**
 	 * Sets the fileName, siteName, date and project name where applicable
 	 * @param dir
@@ -110,7 +112,7 @@ public class GoogleAnalyticsImportSingleton {
 						logger.finest("setting " + dir.getName() + "as site");
 						if (dir.getName() != "jboss.org"){
 							metric.setProject(dir.getName());
-							logger.finest("assigning " + dir.getName() + "as project");
+							logger.log(Level.ALL, "assigning " + dir.getName() + "as project");
 						}
 						metric.setDate(startDate);
 						messageSet.add(metric);
@@ -130,6 +132,9 @@ public class GoogleAnalyticsImportSingleton {
 	 */
 	private boolean isCrapFile(String fileName){
 		assert fileName != null: "fileName must not be null";
+		if (StringUtils.contains(fileName, "(1)")){
+			return true;
+		}
 		if (StringUtils.endsWith(fileName, ".DS_Store")
 				|| StringUtils.endsWith(fileName, ".swp")
 				|| StringUtils.endsWith(fileName, "processed")
@@ -150,24 +155,22 @@ public class GoogleAnalyticsImportSingleton {
 	private boolean isFileAlreadyProcessed(File file){
 		assert file != null: "file must not be null.";
 
-		//look up the file path to see if we have already processed it in the past.
-		logger.log(Level.FINE, "SELECT m from WebMetric m where m.filename = " + file.getAbsolutePath());
-		TypedQuery<WebMetric> findByFilePathQuery = em.createQuery("SELECT m FROM WebMetric m where m.fileName = :path", WebMetric.class );
+		//look up the file path to see if we have already processed it in the past.		
+		TypedQuery<Long> findByFilePathQuery = em.createQuery("SELECT COUNT(m) FROM WebMetric m where m.fileName = :path", Long.class );
 		findByFilePathQuery.setParameter("path", file.getAbsolutePath());
-		List<WebMetric> results = findByFilePathQuery.getResultList();
-		if (results == null || results.size() > 0 ){
-			logger.finest("Already processed " + file.getPath() + " ignoring.");			
+		long fileCount = findByFilePathQuery.getSingleResult();
+		logger.info( "AAAAAAAAA  RECORD COUNT: " + fileCount + " for file " + file.getAbsolutePath());		
+		if (fileCount > 0 ){
+			logger.log(Level.FINEST, "Already processed " + file.getPath() + " ignoring.");			
 			return true;
 		}
 		else {
-			logger.finest("Have not proccessed " + file.getAbsolutePath() + " processing now...");
+			logger.log(Level.FINEST, "Have not proccessed " + file.getAbsolutePath() + " processing now...");
 			return false;					
 		}
 	}
 
 
-
-	//TODO raise a CDI event instead of this mess!
 	private void sendMessages(HashSet<WebMetric> messages){
 		assert messages!=null:"messages must be specified";
 		Connection connection = null;
@@ -179,7 +182,6 @@ public class GoogleAnalyticsImportSingleton {
 			msgProducer = session.createProducer(queue);
 			connection.start();	
 			for(WebMetric m : messages){
-
 				ObjectMessage msg = session.createObjectMessage(m);
 				msg.setObject(m);
 				logger.log(Level.FINE, "Sending "+ m.getProject() + m.getDate() );
@@ -187,7 +189,8 @@ public class GoogleAnalyticsImportSingleton {
 			}   			
 		} catch (Exception e){
 			logger.log(Level.ALL, "Error producing a message", e); 
-		} finally {
+		}
+		finally {
 			if (connection != null) {
 				try {
 					connection.close();
@@ -197,8 +200,8 @@ public class GoogleAnalyticsImportSingleton {
 				}
 			}
 		}
-
 	}
+
 
 
 	/**
@@ -244,13 +247,6 @@ public class GoogleAnalyticsImportSingleton {
 			pe.printStackTrace();
 		}
 		return endDate;
-	}
-
-	@SuppressWarnings("unused")
-	private String getSiteName(final String fileName){
-		throw new UnsupportedOperationException();
-		//TODO:  This method needs to scrape the fileName to pull the name of the website.
-		//TODO:  A good example is jboss tools useage vs website.
 	}
 }
 
