@@ -5,6 +5,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,6 +60,8 @@ public class GoogleAnalyticsImportSingleton {
 	@Inject
 	AnalyticsPageViewParser parser;
 	
+	HashSet<String> fileNames = new HashSet<String>();
+	
 	// -------------------------------------------------------------------
 
 	@PostConstruct
@@ -65,6 +69,7 @@ public class GoogleAnalyticsImportSingleton {
 		//TODO:  Make the data path configurable.
 		dataPath = new File(DEFAULT_DATA_PATH);	
 		logger.fine("Google Analytic Scanner now to scan " + dataPath + " for metrics.");
+		getPreviouslyProcessedFiles();
 		poll();
 	}		
 
@@ -103,7 +108,8 @@ public class GoogleAnalyticsImportSingleton {
 		for (File file: files){
 			if (!isCrapFile(file.getName())){
 				logger.fine("Found " + file.getPath());
-				if (! isFileAlreadyProcessed(file)){
+				if (!fileNames.contains(file.getAbsolutePath())){
+					fileNames.add(file.getAbsolutePath());
 					try {
 						Date startDate = getStartDate(file.getName());;					
 						WebMetric metric = new WebMetric();
@@ -146,29 +152,6 @@ public class GoogleAnalyticsImportSingleton {
 			return false;
 	}
 
-
-	/**
-	 * Checks to see if the File has already been proccessed by the system.
-	 * @param file
-	 * @return
-	 */
-	private boolean isFileAlreadyProcessed(File file){
-		assert file != null: "file must not be null.";
-
-		//look up the file path to see if we have already processed it in the past.		
-		TypedQuery<Long> findByFilePathQuery = em.createQuery("SELECT COUNT(m) FROM WebMetric m where m.fileName = :path", Long.class );
-		findByFilePathQuery.setParameter("path", file.getAbsolutePath());
-		long fileCount = findByFilePathQuery.getSingleResult();
-		logger.info( "AAAAAAAAA  RECORD COUNT: " + fileCount + " for file " + file.getAbsolutePath());		
-		if (fileCount > 0 ){
-			logger.log(Level.FINEST, "Already processed " + file.getPath() + " ignoring.");			
-			return true;
-		}
-		else {
-			logger.log(Level.FINEST, "Have not proccessed " + file.getAbsolutePath() + " processing now...");
-			return false;					
-		}
-	}
 
 
 	private void sendMessages(HashSet<WebMetric> messages){
@@ -248,6 +231,23 @@ public class GoogleAnalyticsImportSingleton {
 		}
 		return endDate;
 	}
+	
+	private void getPreviouslyProcessedFiles (){
+		//look up the file path to see if we have already processed it in the past.		
+		TypedQuery<String> findByFilePathQuery = em.createQuery("SELECT DISTINCT(m.fileName) FROM WebMetric m", String.class );
+		List <String> results = findByFilePathQuery.getResultList();		
+		for (String fileName: results){
+			if (!this.fileNames.contains(fileName)){
+				fileNames.add(fileName);
+			}
+		}
+	}
+	
+	
+	private void scrubJBossOrg(){
+		
+	}
+	
 }
 
 

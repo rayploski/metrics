@@ -20,7 +20,7 @@ import org.jboss.bigcommotion.util.Resources;
 		@ActivationConfigProperty(propertyName="destinationType", propertyValue="queue"),
 		@ActivationConfigProperty(propertyName="destination", propertyValue=Resources.PAGEVIEW_QUEUE),
 		@ActivationConfigProperty(propertyName="acknowledgeMode", propertyValue="auto-acknowledge"),
-		@ActivationConfigProperty(propertyName="maxSession",propertyValue="10")
+		@ActivationConfigProperty(propertyName="maxSession",propertyValue="15")
 		})
 public class GoogleAnalyticsPageviewImporterMDB implements MessageListener{
 	
