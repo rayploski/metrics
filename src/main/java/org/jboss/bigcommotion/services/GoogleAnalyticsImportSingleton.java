@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -89,6 +88,8 @@ public class GoogleAnalyticsImportSingleton {
 			if (isCrapFile(dir.getName())){
 				continue;
 			}
+			System.out.println(dir.getPath());
+			System.out.println(dir.getAbsolutePath());
 			
 			//Assign project name, fileName and siteName
 			walkthruDir(dir);				
@@ -108,7 +109,7 @@ public class GoogleAnalyticsImportSingleton {
 		for (File file: files){
 			if (!isCrapFile(file.getName())){
 				logger.fine("Found " + file.getPath());
-				if (!fileNames.contains(file.getAbsolutePath())){
+				if (!fileNames.contains(file.getAbsolutePath())   && !fileNames.contains(file.getPath()) ){
 					fileNames.add(file.getAbsolutePath());
 					try {
 						Date startDate = getStartDate(file.getName());;					
@@ -151,6 +152,7 @@ public class GoogleAnalyticsImportSingleton {
 		else
 			return false;
 	}
+
 
 
 
@@ -201,8 +203,8 @@ public class GoogleAnalyticsImportSingleton {
 		Date startDate = null;
 
 		try {
-			logger.fine("********** dateRange = " + dateRange);
-			logger.fine("********** startDateStr = " + startDateStr);
+			logger.fine("dateRange = " + dateRange);
+			logger.fine("startDateStr = " + startDateStr);
 			startDate = sdf.parse(startDateStr);
 
 		} catch (ParseException pe){
@@ -238,16 +240,11 @@ public class GoogleAnalyticsImportSingleton {
 		List <String> results = findByFilePathQuery.getResultList();		
 		for (String fileName: results){
 			if (!this.fileNames.contains(fileName)){
+				System.out.println("Adding " + fileName);
 				fileNames.add(fileName);
 			}
 		}
-	}
-	
-	
-	private void scrubJBossOrg(){
-		
-	}
-	
+	}	
 }
 
 

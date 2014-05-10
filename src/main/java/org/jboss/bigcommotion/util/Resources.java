@@ -41,6 +41,5 @@ public class Resources {
     	String temp = StringUtils.remove(value, "%");
     	return new Float(temp);
     }
-	
-   
+    
 }

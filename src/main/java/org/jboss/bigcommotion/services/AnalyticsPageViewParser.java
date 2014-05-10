@@ -2,10 +2,10 @@ package org.jboss.bigcommotion.services;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +20,7 @@ import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.bigcommotion.model.WebMetric;
@@ -38,16 +39,14 @@ public class AnalyticsPageViewParser {
 
 	private static final String REGEX_COMMAS_AND_QUOTES = ",(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
 	private static final int END_OF_URI_METRICS_LINENUM = 2506;    
-	SimpleDateFormat sdf = new SimpleDateFormat("MMM-dd-yyyy");
-
-
 	
 	@PersistenceContext(unitName = Resources.PERSISTENCE_CONTEXT_NAME)
 	private EntityManager em;
 
 	private static KieServices ks = KieServices.Factory.get();
     private KieContainer kContainer = ks.getKieClasspathContainer();
-    
+    private SimpleDateFormat sdf = new SimpleDateFormat("MMM-dd-yyyy");
+
     
     /**
      * There are many duplicates from jboss.org.  This method checks existing entries,
@@ -117,13 +116,24 @@ public class AnalyticsPageViewParser {
      * @return
      * @throws Exception
      */
-    public Collection<WebMetric> parseFile(String siteName, File file, Date startDate) throws Exception{
+    public void parseFile(String siteName, File file, Date startDate){
     	assert siteName != null : "siteName must be specified";
     	assert file != null : "file must be specified";
     	assert startDate !=null : "startDate must be specified";
+    	
+    	if(isFileAlreadyProcessed(file)){
+    		logger.info("Not processing " + file.getAbsolutePath() + " as it's already been processed.");
+    		return;
+    	}
         
     	Map<String, WebMetric> metrics = new HashMap<String, WebMetric>();  //stores paths for consolidating things like /downloads and /downloads/index.html prior to pertisting to the DB.
-        FileReader fileReader = new FileReader(file);
+    	FileReader fileReader = null;
+		try {
+			fileReader = new FileReader(file);
+		} catch (FileNotFoundException e) {
+			logger.log(Level.SEVERE, "Could not read file " + file.getAbsolutePath());
+			return;
+		}
         BufferedReader bufferedFileReader = new BufferedReader(fileReader);
     	Scanner scanner = new Scanner(bufferedFileReader);
 		long lineNum = 0;
@@ -178,11 +188,33 @@ public class AnalyticsPageViewParser {
         //TODO:  Add summarized page-views that start on line 2511 of a JBoss.org report.
         //TODO:  Address and recognize pattern for the end of the individual files.  We *do* want to record the rest of the file but this will do for now.
         scanner.close();
-        
         logger.info("Saving metrics from " + sdf.format(startDate) + " recording " + metrics.size() + " metrics");
         saveMetrics(metrics);
-        return metrics.values();
     }
+
+	
+	/**
+	 * Checks to see if the File has already been proccessed by the system.
+	 * @param file
+	 * @return
+	 */
+	private boolean isFileAlreadyProcessed(File file){
+		assert file != null: "file must not be null.";
+
+		//look up the file path to see if we have already processed it in the past.		
+		TypedQuery<Long> findByFilePathQuery = em.createQuery("SELECT COUNT(m) FROM WebMetric m where m.fileName = :path", Long.class );
+		findByFilePathQuery.setParameter("path", file.getAbsolutePath());
+		long fileCount = findByFilePathQuery.getSingleResult();
+		logger.info( "RECORD COUNT: " + fileCount + " for file " + file.getAbsolutePath());		
+		if (fileCount > 0 ){
+			logger.log(Level.FINEST, "Already processed " + file.getPath() + " ignoring.");			
+			return true;
+		}
+		else {
+			logger.log(Level.FINEST, "Have not proccessed " + file.getAbsolutePath() + " processing now...");
+			return false;					
+		}
+	}
 
     
 }
