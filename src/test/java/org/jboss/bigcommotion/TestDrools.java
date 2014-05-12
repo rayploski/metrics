@@ -5,6 +5,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Assert;
+
+
 import org.kie.api.KieServices;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
@@ -46,7 +49,7 @@ public class TestDrools {
 		metric.setPage("/as7.html");
         ksession.insert(metric);
         ksession.fireAllRules();
-        assert (metric.getPage().equals("jbossas"));
+        Assert.assertEquals("/as7 should be assigned to jbossas project", metric.getProject(),"jbossas");
 	}
 	
 	@Test
@@ -55,7 +58,7 @@ public class TestDrools {
 		metric.setPage("as/download.html");
 		ksession.insert(metric);
 		ksession.fireAllRules();
-		assert (metric.getPage().equals("/download"));
+		Assert.assertEquals(".html should be removed", metric.getPage(), "as/download");
 	}
 	
 	@Test
@@ -65,21 +68,7 @@ public class TestDrools {
 		ksession.insert(metric);
 		ksession.fireAllRules();
 		System.out.println("Test QueryString: " + metric.getPage());
-		assert (metric.getPage().equals("as/download"));		
-	}
-	
-	@Test
-	public void testPageLength(){
-		WebMetric metric = new WebMetric(file,site,null);
-		StringBuilder sb = new StringBuilder(1024);
-		for (int i = 0; i < 1024; i++){
-			sb.append('a');
-		}
-		metric.setPage(sb.toString());
-		ksession.insert(metric);
-		ksession.fireAllRules();
-		System.out.println("Test PageLength: " + metric.getPage().length());
-		assert (metric.getPage().length() < 512);		
+		Assert.assertEquals("QueryStrings should be removed", metric.getPage(), "as/download");		
 	}
 
 }
