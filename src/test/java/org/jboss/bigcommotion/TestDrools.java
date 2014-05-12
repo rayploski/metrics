@@ -28,7 +28,8 @@ public class TestDrools {
 	
 	@Before
 	public void before(){
-		 ksession = kContainer.newKieSession();	        
+		 ksession = kContainer.newKieSession("webmetrics");	        
+		 
 	}
 	
 	

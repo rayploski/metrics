@@ -173,6 +173,7 @@ public class AnalyticsPageViewParser {
         				addOrUpdateMetric(metrics, metric);
         			} 
         			catch (java.util.NoSuchElementException nse){
+        				//TODO:  This is where files start their daily summaries.  Add this as another metric.
         				logger.warning("Scanner shit the bed at line: " + lineNum + "Stopping scan of file.");
         				break filescan;
         			}
