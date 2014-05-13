@@ -35,6 +35,12 @@ public class TestDrools {
 		 
 	}
 	
+	@Test
+	public void testRuntime(){
+		String version = System.getProperty("java.version");
+		Assert.assertTrue("tests must run upon java 1.6 or 1.7", (version.startsWith("1.6") || version.startsWith("1.7")));
+	}
+	
 	
 	@After
 	public void after(){
