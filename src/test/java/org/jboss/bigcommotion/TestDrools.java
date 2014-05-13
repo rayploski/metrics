@@ -58,16 +58,6 @@ public class TestDrools {
         Assert.assertEquals("/as7 should be assigned to jbossas project", metric.getProject(),"jbossas");
 	}
 	@Test
-	public void testDanAdditions() {
-		WebMetric metric = new WebMetric(file,site,null);
-		metric.setProject("jboss.org");
-		metric.setPage("/jbossorg-downloads/jboss-reflect-2.0.2.GA.zip");
-        ksession.insert(metric);
-        ksession.fireAllRules();
-        System.out.println(metric.getProject());
-        assert (metric.getProject().equals("jbosstools"));
-	}
-	@Test
 	public void testPathAssignmentMods() {
 		WebMetric metric = new WebMetric(file,site,null);
 		metric.setPage("as/download.html");
