@@ -57,7 +57,6 @@ public class TestDrools {
         ksession.fireAllRules();
         Assert.assertEquals("/as7 should be assigned to jbossas project", metric.getProject(),"jbossas");
 	}
-	
 	@Test
 	public void testPathAssignmentMods() {
 		WebMetric metric = new WebMetric(file,site,null);
