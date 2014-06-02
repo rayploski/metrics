@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -233,6 +235,31 @@ public class GoogleAnalyticsImportSingleton {
 		}
 		return endDate;
 	}
+	
+	/**
+	 * Pulls getStartDate and getEndDate and verifies that they are the correct days of the week.
+	 * Start date: SUNDAY and End Date: SATURDAY
+	 * @param fileName
+	 * @return
+	 */
+    private boolean isProperWeek(final String fileName)
+    {
+        assert fileName != null && !fileName.isEmpty(): "fileName must be specified.";
+        Calendar startCal = new GregorianCalendar(2011, 01, 01);
+        boolean start = false;
+        boolean end = false;
+        startCal.setTime(getStartDate(fileName));
+
+        if(startCal.get(Calendar.DAY_OF_WEEK)==1)
+            start = true;
+
+        startCal.setTime(getEndDate(fileName));
+        if(startCal.get(Calendar.DAY_OF_WEEK)==7)
+            end = true;
+
+        return start && end;
+    }
+
 	
 	private void getPreviouslyProcessedFiles (){
 		//look up the file path to see if we have already processed it in the past.		
